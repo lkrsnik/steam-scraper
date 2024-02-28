@@ -14,6 +14,10 @@ DOWNLOADER_MIDDLEWARES = {
     'steam.middlewares.CircumventAgeCheckMiddleware': 600,
 }
 
+ITEM_PIPELINES = {
+   'steam.sqlite.SQLitePipeline': 300,
+}
+
 AUTOTHROTTLE_ENABLED = True
 AUTOTHROTTLE_TARGET_CONCURRENCY = 8
 

@@ -23,10 +23,14 @@ pyOpenSSL
 pyparsing
 python-dateutil
 queuelib
-Scrapy
+Scrapy~=2.11.0
 service-identity
 six
 smart-getenv
 Twisted
-w3lib
+w3lib~=2.1.2
 zope.interface
+pandas~=2.1.2
+itemloaders~=1.1.0
+numpy~=1.26.1
+setuptools~=68.2.2

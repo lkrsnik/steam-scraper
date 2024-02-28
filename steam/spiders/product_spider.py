@@ -11,6 +11,7 @@ from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
 
 from ..items import ProductItem, ProductItemLoader
+from ..sqlite import Database, Product
 
 logger = logging.getLogger(__name__)
 
@@ -121,15 +122,11 @@ class ProductSpider(CrawlSpider):
              restrict_css='.search_pagination_right'))
     ]
 
-    def __init__(self, processed_products_path=None, steam_id=None, *args, **kwargs):
+    def __init__(self, steam_id=None, sqlite_path=None, overwrite_db=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.db = Database(sqlite_path, overwrite_db == 'True')
         self.steam_id = steam_id
-        self.processed_products = set()
-        if processed_products_path is not None:
-            products_df = pd.read_csv(processed_products_path, index_col=0)
-            self.processed_products = set(products_df['id'])
-        else:
-            self.processed_products = set()
+        self.processed_products = self.db.get_product_ids()
 
 
     def start_requests(self):
@@ -138,16 +135,6 @@ class ProductSpider(CrawlSpider):
                           callback=self.parse_product)
         else:
             yield from super().start_requests()
-            # if not self.start_urls and hasattr(self, "start_url"):
-            #     raise AttributeError(
-            #         "Crawling could not start: 'start_urls' not found "
-            #         "or empty (but found 'start_url' attribute instead, "
-            #         "did you miss an 's'?)"
-            #     )
-            # for url in self.start_urls:
-            #     yield Request(url,
-            #                   cookies={"wants_mature_content": "1", "lastagecheckage": "1-0-1985", "birthtime": '470703601'},
-            #                   dont_filter=True)
 
     def parse_product(self, response):
         # Circumvent age selection form.
@@ -176,6 +163,7 @@ class ProductSpider(CrawlSpider):
             )
 
         else:
+
             yield load_product(response)
 
     def process_app_links(self, links):

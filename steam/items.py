@@ -3,7 +3,7 @@ import logging
 
 import scrapy
 from scrapy.loader import ItemLoader
-from scrapy.loader.processors import Compose, Join, MapCompose, TakeFirst
+from itemloaders.processors import Compose, Join, MapCompose, TakeFirst
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ def standardize_date(x):
 
 
 def str_to_float(x):
-    x = x.replace(',', '')
+    x = x.replace(',', '.')
     try:
         return float(x)
     except:  # noqa E722
@@ -116,6 +116,7 @@ class ReviewItem(scrapy.Item):
     product_id = scrapy.Field()
     page = scrapy.Field()
     page_order = scrapy.Field()
+    url = scrapy.Field()
     recommended = scrapy.Field(
         output_processor=Compose(TakeFirst(), simplify_recommended),
     )
