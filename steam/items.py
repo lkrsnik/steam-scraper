@@ -71,12 +71,15 @@ class ProductItem(scrapy.Item):
     id = scrapy.Field()
     app_name = scrapy.Field()
     reviews_url = scrapy.Field()
+    news_url = scrapy.Field()
     title = scrapy.Field()
     genres = scrapy.Field(
         output_processor=Compose(TakeFirst(), lambda x: x.split(','), MapCompose(StripText()))
     )
     developer = scrapy.Field()
     publisher = scrapy.Field()
+    description_about = scrapy.Field()
+    description_reviews = scrapy.Field()
     release_date = scrapy.Field(
         output_processor=Compose(TakeFirst(), StripText(), standardize_date)
     )
@@ -129,7 +132,7 @@ class ReviewItem(scrapy.Item):
     found_helpful = scrapy.Field(
         output_processor=Compose(TakeFirst(), str_to_int)
     )
-    found_unhelpful = scrapy.Field(
+    found_awarding = scrapy.Field(
         output_processor=Compose(TakeFirst(), str_to_int)
     )
     found_funny = scrapy.Field(

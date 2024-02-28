@@ -30,7 +30,8 @@ def parse_args():
     parser.add_argument(
         '--pieces',
         help='Number of URL files to produce.',
-        default=10
+        default=10,
+        type=int
     )
     return parser.parse_args()
 
@@ -49,7 +50,7 @@ def main():
     blx = blx_nontrivial & blx_has_reviews
 
     urls = df.loc[blx, 'reviews_url'].unique()
-    urls = shuffle(urls)
+    # urls = shuffle(urls)
 
     n = len(urls)
     step = int(math.ceil(float(n)/args.pieces))

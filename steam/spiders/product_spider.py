@@ -1,5 +1,9 @@
 import logging
 import re
+
+import pandas as pd
+from scrapy.http import Request
+
 from w3lib.url import canonicalize_url, url_query_cleaner
 
 from scrapy.http import FormRequest
@@ -23,13 +27,15 @@ def load_product(response):
     if found_id:
         id = found_id[0]
         reviews_url = f'http://steamcommunity.com/app/{id}/reviews/?browsefilter=mostrecent&p=1'
+        news_url = f'http://store.steampowered.com/news/app/{id}'
         loader.add_value('reviews_url', reviews_url)
+        loader.add_value('news_url', news_url)
         loader.add_value('id', id)
 
     # Publication details.
     details = response.css('.details_block').extract_first()
     try:
-        details = details.split('<br>')
+        details = re.split(r'<br>|<div class="dev_row">|<\/div>', details)
 
         for line in details:
             line = re.sub('<[^<]+?>', '', line)  # Remove tags.
@@ -47,8 +53,30 @@ def load_product(response):
     except:  # noqa E722
         pass
 
+    description_about = response.css('#game_area_description').extract_first()
+    try:
+        text = ''
+
+        line = re.sub('<[^<]+?>', '', description_about)  # Remove tags.
+        line = re.sub('[\r\t\n]+', '\n', line).strip()
+        text += line.strip() + '\n'
+        loader.add_value('description_about', text)
+    except:  # noqa E722
+        pass
+
+    description_reviews = response.css('#game_area_reviews').extract_first()
+    try:
+        text = ''
+
+        line = re.sub('<[^<]+?>', '', description_reviews)  # Remove tags.
+        line = re.sub('[\r\t\n]+', '\n', line).strip()
+        text += line.strip() + '\n'
+        loader.add_value('description_reviews', text)
+    except:  # noqa E722
+        pass
+
     loader.add_css('app_name', '.apphub_AppName ::text')
-    loader.add_css('specs', '.game_area_details_specs a ::text')
+    loader.add_css('specs', 'a.game_area_details_specs_ctn ::text')
     loader.add_css('tags', 'a.app_tag::text')
 
     price = response.css('.game_purchase_price ::text').extract_first()
@@ -60,7 +88,8 @@ def load_product(response):
     sentiment = response.css('.game_review_summary').xpath(
         '../*[@itemprop="description"]/text()').extract()
     loader.add_value('sentiment', sentiment)
-    loader.add_css('n_reviews', '.responsive_hidden', re='\(([\d,]+) reviews\)')
+    # loader.add_css('n_reviews', '.responsive_hidden', re='\(([\d,]+) reviews\)')
+    loader.add_css('n_reviews', '.responsive_hidden', re='\(([\d,]+)\)')
 
     loader.add_xpath(
         'metascore',
@@ -85,15 +114,23 @@ class ProductSpider(CrawlSpider):
         Rule(LinkExtractor(
              allow='/app/(.+)/',
              restrict_css='#search_result_container'),
-             callback='parse_product'),
+             callback='parse_product',
+             process_links='process_app_links'),
         Rule(LinkExtractor(
              allow='page=(\d+)',
              restrict_css='.search_pagination_right'))
     ]
 
-    def __init__(self, steam_id=None, *args, **kwargs):
+    def __init__(self, processed_products_path=None, steam_id=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.steam_id = steam_id
+        self.processed_products = set()
+        if processed_products_path is not None:
+            products_df = pd.read_csv(processed_products_path, index_col=0)
+            self.processed_products = set(products_df['id'])
+        else:
+            self.processed_products = set()
+
 
     def start_requests(self):
         if self.steam_id:
@@ -101,6 +138,16 @@ class ProductSpider(CrawlSpider):
                           callback=self.parse_product)
         else:
             yield from super().start_requests()
+            # if not self.start_urls and hasattr(self, "start_url"):
+            #     raise AttributeError(
+            #         "Crawling could not start: 'start_urls' not found "
+            #         "or empty (but found 'start_url' attribute instead, "
+            #         "did you miss an 's'?)"
+            #     )
+            # for url in self.start_urls:
+            #     yield Request(url,
+            #                   cookies={"wants_mature_content": "1", "lastagecheckage": "1-0-1985", "birthtime": '470703601'},
+            #                   dont_filter=True)
 
     def parse_product(self, response):
         # Circumvent age selection form.
@@ -124,8 +171,25 @@ class ProductSpider(CrawlSpider):
                 url=action,
                 method='POST',
                 formdata=formdata,
-                callback=self.parse_product
+                callback=self.parse_product,
+                cookies={"wants_mature_content": "1", "lastagecheckage": "1-0-1985", "birthtime": '470703601'},
             )
 
         else:
             yield load_product(response)
+
+    def process_app_links(self, links):
+        for link in links:
+            app_id = re.findall('/app/(.*?)/', link.url)
+            if len(app_id) == 1 and int(app_id[0]) in self.processed_products:
+                continue
+            yield link
+
+    def _build_request(self, rule_index, link):
+        return Request(
+            url=link.url,
+            callback=self._callback,
+            cookies={"wants_mature_content": "1", "lastagecheckage": "1-0-1985", "birthtime": '470703601'},
+            errback=self._errback,
+            meta=dict(rule=rule_index, link_text=link.text),
+        )
