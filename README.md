@@ -26,8 +26,8 @@ git clone git@github.com:lkrsnik/steam-scraper.git
 start and activate a Python 3.6+ virtualenv with
 ```bash
 cd steam-scraper
-virtualenv -p python3.6 env
-. env/bin/activate
+virtualenv -p python3 venv
+. venv/bin/activate
 ```
 Install Python requirements via:
 ```bash
@@ -47,7 +47,7 @@ A neat feature of this spider is that it automatically navigates through Steam's
 You can initiate the multi-hour crawl with
 ```bash
 mkdir output
-crawl products --logfile=output/products_all.log --loglevel=INFO -s JOBDIR=output/products_all_job -s HTTPCACHE_ENABLED=False -a sqlite_path=output/db.psql -a overwrite_db=False
+scrapy crawl products --logfile=output/products_all.log --loglevel=INFO -s JOBDIR=output/products_all_job -s HTTPCACHE_ENABLED=False -a sqlite_path=output/db.psql
 ```
 When it completes you should have metadata for all games (products) on Steam stored in db.psql. 
 
@@ -57,7 +57,7 @@ The purpose of `ReviewSpider` is to scrape all user-submitted reviews of a parti
 By default, it scrapes reviews of products, where column `reviews_scraped` is empty (`NULL`) and `n_reviews` is larger than `10`.
 
 ```bash
-crawl reviews --logfile=output/reviews_all.log --loglevel=INFO -s JOBDIR=output/reviews -s HTTPCACHE_ENABLED=False -a sqlite_path=output/db.psql
+scrapy crawl reviews --logfile=output/reviews_all.log --loglevel=INFO -s JOBDIR=output/reviews -s HTTPCACHE_ENABLED=False -a sqlite_path=output/db.psql
 ```
 
 If you want to scrape all reviews, the whole job takes a few days with Steam's generous rate limits.
@@ -66,7 +66,7 @@ If you want to scrape all reviews, the whole job takes a few days with Steam's g
 The repository also includes a script that gives you an option to add news of all projects to the database. This is done by accessing Steam API and not scraping.
 
 ```bash
-python -m scripts.get_news_api.py --sqlite_path output/db.psql
+python -m scripts.get_news_api --sqlite_path output/db.psql
 ```
 
 ## Minimizing database
