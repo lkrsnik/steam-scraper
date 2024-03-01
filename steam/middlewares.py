@@ -18,7 +18,7 @@ def strip_snr(request):
     url = url_query_cleaner(request.url, ['snr'], remove=True)
     return request.replace(url=url)
 
-import binascii
+
 class SteamCacheStorage(FilesystemCacheStorage):
     def _get_request_path(self, spider, request):
         request = strip_snr(request)
@@ -37,33 +37,10 @@ class CircumventAgeCheckMiddleware(RedirectMiddleware):
     def _redirect(self, redirected, request, spider, reason):
         # Only overrule the default redirect behavior
         # in the case of mature content checkpoints.
-        # if re.findall('agecheck/app/(.*)', redirected.url):
-        #     print('here!')
-
-        # if not re.findall('agecheck/app/(.*)', redirected.url):
-        #     return super()._redirect(redirected, request, spider, reason)
         if not re.findall('app/(.*)/agecheck', redirected.url):
             return super()._redirect(redirected, request, spider, reason)
 
         logger.debug(f'Button-type age check triggered for {request.url}.')
-
-        # sa = Request(url=request.url,
-        #                cookies={'wants_mature_content': '1'},
-        #                meta={'dont_cache': True},
-        #                callback=spider.parse_product)
-        #
-        # a = process_request(sa, spider)
-
-        # a = Request(url=request.url,
-        #                cookies={'wants_mature_content': '1'},
-        #                meta={'dont_cache': True},
-        #                callback=spider.parse_product)
-        #
-        # inspect_response(a, spider)
-
-        # am_sh = Shell(spider)
-        # am = am_sh.fetch(a)
-        # resp = fetch(a)
 
         return Request(url=request.url,
                        cookies={"wants_mature_content": "1", "lastagecheckage": "1-0-1985", "birthtime": '470703601'},

@@ -1,3 +1,15 @@
+# A fork of [steam scraper](https://github.com/prncc/steam-scraper/)
+
+## Description
+
+This is a fork of [steam scraper](https://github.com/prncc/steam-scraper/). Key differences:
+- Updated to later version
+- Output is now stored in SQLite database
+- Additional fields are being scraped (ie. description)
+- Added script for fetching News from API
+- Added script for minimizing SQLite dataset
+
+
 # Steam Scraper
 
 This repository contains [Scrapy](https://github.com/scrapy/scrapy) spiders for **crawling products** and **scraping all user-submitted reviews** from the [Steam game store](https://steampowered.com).

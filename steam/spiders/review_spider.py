@@ -105,7 +105,6 @@ class ReviewSpider(scrapy.Spider):
         self.partially_processed_product_urls = self.db.get_last_urls_from_partially_processed_products()
         self.unprocessed_products = self.db.get_products_with_unprocessed_reviews()
 
-        # self.unprocessed_products = [(4780, 'https://steamcommunity.com/app/4780/reviews/?browsefilter=mostrecent&p=1')]
         self.failed_requests = {}
         self.review_ids = self.db.get_review_ids()
         self.rscrape_ids = self.db.get_rscrape_ids()

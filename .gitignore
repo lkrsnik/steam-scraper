@@ -1,7 +1,3 @@
+*.pyc
 output*
-review_fails
-__pycache__
 .idea
-TEMP
-reviews.jl
-

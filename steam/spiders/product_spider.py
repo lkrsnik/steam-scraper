@@ -1,7 +1,5 @@
 import logging
 import re
-
-import pandas as pd
 from scrapy.http import Request
 
 from w3lib.url import canonicalize_url, url_query_cleaner
@@ -11,7 +9,7 @@ from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
 
 from ..items import ProductItem, ProductItemLoader
-from ..sqlite import Database, Product
+from ..sqlite import Database
 
 logger = logging.getLogger(__name__)
 
