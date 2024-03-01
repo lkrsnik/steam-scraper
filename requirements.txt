@@ -30,7 +30,5 @@ smart-getenv
 Twisted
 w3lib~=2.1.2
 zope.interface
-pandas~=2.1.2
 itemloaders~=1.1.0
-numpy~=1.26.1
-setuptools~=68.2.2
+tqdm
