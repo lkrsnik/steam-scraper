@@ -134,35 +134,25 @@ class ProductSpider(CrawlSpider):
         else:
             yield from super().start_requests()
 
-    def parse_product(self, response):
-        # Circumvent age selection form.
-        if '/agecheck/app' in response.url:
-            logger.debug(f'Form-type age check triggered for {response.url}.')
+    @staticmethod
+    def get_product_id(response):
+        product_id = response.meta.get('product_id', None)
 
-            form = response.css('#agegate_box form')
-
-            action = form.xpath('@action').extract_first()
-            name = form.xpath('input/@name').extract_first()
-            value = form.xpath('input/@value').extract_first()
-
-            formdata = {
-                name: value,
-                'ageDay': '1',
-                'ageMonth': '1',
-                'ageYear': '1955'
-            }
-
-            yield FormRequest(
-                url=action,
-                method='POST',
-                formdata=formdata,
-                callback=self.parse_product,
-                cookies={"wants_mature_content": "1", "lastagecheckage": "1-0-1985", "birthtime": '470703601'},
-            )
-
+        if not product_id:
+            try:
+                return re.findall("app/(.+?)/", response.url)[0]
+            except Exception as e:
+                print(e)
+                try:
+                    return re.findall("app/(.+?)$", response.url)[0]
+                except:
+                    return None
         else:
+            return product_id
 
-            yield load_product(response)
+    @staticmethod
+    def parse_product(response):
+        yield load_product(response)
 
     def process_app_links(self, links):
         for link in links:
@@ -172,6 +162,8 @@ class ProductSpider(CrawlSpider):
             yield link
 
     def _build_request(self, rule_index, link):
+        if '815760' in link.url:
+            print('here!')
         return Request(
             url=link.url,
             callback=self._callback,

@@ -31,18 +31,3 @@ class SteamDupeFilter(RFPDupeFilter):
     def request_fingerprint(self, request):
         request = strip_snr(request)
         return super().request_fingerprint(request)
-
-
-class CircumventAgeCheckMiddleware(RedirectMiddleware):
-    def _redirect(self, redirected, request, spider, reason):
-        # Only overrule the default redirect behavior
-        # in the case of mature content checkpoints.
-        if not re.findall('app/(.*)/agecheck', redirected.url):
-            return super()._redirect(redirected, request, spider, reason)
-
-        logger.debug(f'Button-type age check triggered for {request.url}.')
-
-        return Request(url=request.url,
-                       cookies={"wants_mature_content": "1", "lastagecheckage": "1-0-1985", "birthtime": '470703601'},
-                       meta={'dont_cache': True},
-                       callback=spider.parse_product)
