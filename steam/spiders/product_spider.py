@@ -1,5 +1,7 @@
 import logging
 import re
+from scrapy.http import Request
+
 from w3lib.url import canonicalize_url, url_query_cleaner
 
 from scrapy.http import FormRequest
@@ -29,7 +31,7 @@ def load_product(response):
     # Publication details.
     details = response.css('.details_block').extract_first()
     try:
-        details = details.split('<br>')
+        details = re.split(r'<br>|<div class="dev_row">|<\/div>', details)
 
         for line in details:
             line = re.sub('<[^<]+?>', '', line)  # Remove tags.
@@ -47,8 +49,25 @@ def load_product(response):
     except:  # noqa E722
         pass
 
+    description_about = response.css('#game_area_description').extract_first()
+
+    def clean_html(description):
+        text = ''
+        try:
+            line = re.sub('<[^<]+?>', '', description)  # Remove tags.
+            line = re.sub('[\r\t\n]+', '\n', line).strip()
+            text += line.strip() + '\n'
+            loader.add_value('description_about', text)
+        except:
+            pass
+        return text
+
+    loader.add_value('description_about', clean_html(description_about))
+    description_reviews = response.css('#game_area_reviews').extract_first()
+    loader.add_value('description_reviews', clean_html(description_reviews))
+
     loader.add_css('app_name', '.apphub_AppName ::text')
-    loader.add_css('specs', '.game_area_details_specs a ::text')
+    loader.add_css('specs', 'a.game_area_details_specs_ctn ::text')
     loader.add_css('tags', 'a.app_tag::text')
 
     price = response.css('.game_purchase_price ::text').extract_first()
@@ -60,7 +79,7 @@ def load_product(response):
     sentiment = response.css('.game_review_summary').xpath(
         '../*[@itemprop="description"]/text()').extract()
     loader.add_value('sentiment', sentiment)
-    loader.add_css('n_reviews', '.responsive_hidden', re='\(([\d,]+) reviews\)')
+    loader.add_css('n_reviews', '.responsive_hidden', re='\(([\d,]+)\)')
 
     loader.add_xpath(
         'metascore',
@@ -129,3 +148,12 @@ class ProductSpider(CrawlSpider):
 
         else:
             yield load_product(response)
+
+    def _build_request(self, rule_index, link):
+        return Request(
+            url=link.url,
+            callback=self._callback,
+            cookies={"wants_mature_content": "1", "lastagecheckage": "1-0-1985", "birthtime": '470703601'},
+            errback=self._errback,
+            meta=dict(rule=rule_index, link_text=link.text),
+        )

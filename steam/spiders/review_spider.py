@@ -25,15 +25,20 @@ def load_review(review, product_id, page, order):
     loader.add_css('compensation', '.received_compensation::text')
 
     # User/reviewer data.
-    loader.add_css('user_id', '.apphub_CardContentAuthorName a::attr(href)', re='.*/profiles/(.+)/')
+    user_id = loader.get_css('.apphub_CardContentAuthorName a::attr(href)', re='.*/profiles/(.+)/')
+    if not user_id:
+        user_id = loader.get_css('.apphub_CardContentAuthorName a::attr(href)', re='.*/id/(.+)/')
+
+    loader.add_value('user_id', user_id[0])
     loader.add_css('username', '.apphub_CardContentAuthorName a::text')
     loader.add_css('products', '.apphub_CardContentMoreLink ::text', re='([\d,]+) product')
 
     # Review feedback data.
     feedback = loader.get_css('.found_helpful ::text')
-    loader.add_value('found_helpful', feedback, re='([\d,]+) of')
-    loader.add_value('found_unhelpful', feedback, re='of ([\d,]+)')
+    loader.add_value('found_helpful', feedback, re='([\d,]+).*helpful')
     loader.add_value('found_funny', feedback, re='([\d,]+).*funny')
+    awarding = loader.get_css('.review_award_aggregated ::text')
+    loader.add_value('found_awarding', awarding)
 
     early_access = loader.get_css('.early_access_review')
     if early_access:
@@ -63,8 +68,11 @@ def get_product_id(response):
     if not product_id:
         try:
             return re.findall("app/(.+?)/", response.url)[0]
-        except:  # noqa E722
-            return None
+        except Exception as e:
+            try:
+                return re.findall("app/(.+?)$", response.url)[0]
+            except:
+                return None
     else:
         return product_id
 
@@ -104,6 +112,10 @@ class ReviewSpider(scrapy.Spider):
     def parse(self, response):
         page = get_page(response)
         product_id = get_product_id(response)
+
+        # Handle redirects (usually for DLCs where review links don't work).
+        if 'reviews' not in response.url and response.meta['redirect_reasons'][-1] == 302:
+            return
 
         # Load all reviews on current page.
         reviews = response.css('div .apphub_Card')
