@@ -1,14 +1,10 @@
 import logging
 import os
-import re
 from w3lib.url import url_query_cleaner
 
-from scrapy import Request
-from scrapy.downloadermiddlewares.redirect import RedirectMiddleware
 from scrapy.dupefilters import RFPDupeFilter
 from scrapy.extensions.httpcache import FilesystemCacheStorage
-from scrapy.utils.request import request_fingerprint, fingerprint
-from scrapy.shell import inspect_response
+from scrapy.utils.request import fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -31,3 +27,10 @@ class SteamDupeFilter(RFPDupeFilter):
     def request_fingerprint(self, request):
         request = strip_snr(request)
         return super().request_fingerprint(request)
+
+
+class AddAgeCheckCookieMiddleware(object):
+    @staticmethod
+    def process_request(request, spider):
+        if spider.name == 'products' and not request.cookies:
+            request.cookies = {"wants_mature_content": "1", "lastagecheckage": "1-0-1985", "birthtime": '470703601'}

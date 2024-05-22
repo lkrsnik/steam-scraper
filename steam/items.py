@@ -52,6 +52,7 @@ def standardize_date(x):
 
 
 def str_to_float(x):
+    x = x.replace('.', '')
     x = x.replace(',', '.')
     try:
         return float(x)

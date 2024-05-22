@@ -549,26 +549,3 @@ class Database(Product, Review, News):
     def close(self):
         """ Close connection. """
         self.db.close()
-
-
-class SQLitePipeline:
-    def __init__(self, db):
-        self.db = db
-
-    @classmethod
-    def from_crawler(cls, crawler):
-        return cls(
-            db=crawler.spider.db,
-        )
-
-    def close_spider(self, spider):
-        self.db.close()
-
-    def process_item(self, item, spider):
-        if spider.name == 'products':
-            self.db.add_product(item)
-
-        if spider.name == 'reviews':
-            self.db.add_review(item, str(dt.datetime.today()), spider.review_ids, spider.rscrape_ids, spider.user_ids)
-
-        return item

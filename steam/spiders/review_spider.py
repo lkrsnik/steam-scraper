@@ -35,9 +35,7 @@ def load_review(review, product_id, page, order, response):
 
     loader.add_value('user_id', user_id[0])
     loader.add_css('username', '.apphub_CardContentAuthorName a::text')
-    has_failed = False
     if not user_id or not text:
-        has_failed = True
         with open(f'review_fails/{product_id}-p{page}.html', 'w') as wf:
             wf.write(response.text)
     loader.add_css('products', '.apphub_CardContentMoreLink ::text', re='([\d,]+) product')
@@ -57,7 +55,7 @@ def load_review(review, product_id, page, order, response):
 
     loader.add_value('url', response.url)
 
-    return has_failed, loader.load_item()
+    return loader.load_item()
 
 
 def get_page(response):
@@ -80,7 +78,6 @@ def get_product_id(response):
         try:
             return re.findall("app/(.+?)/", response.url)[0]
         except Exception as e:
-            print(e)
             try:
                 return re.findall("app/(.+?)$", response.url)[0]
             except:
@@ -95,6 +92,11 @@ class ReviewSpider(scrapy.Spider):
         # Full Metal Furies
         'http://steamcommunity.com/app/416600/reviews/?browsefilter=mostrecent&p=1',
     ]
+    custom_settings = {
+        'DOWNLOADER_MIDDLEWARES': {
+            'steam.middlewares.AddAgeCheckCookieMiddleware': None,
+        }
+    }
 
     def __init__(self, sqlite_path=None, steam_id=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -105,7 +107,6 @@ class ReviewSpider(scrapy.Spider):
         self.partially_processed_product_urls = self.db.get_last_urls_from_partially_processed_products()
         self.unprocessed_products = self.db.get_products_with_unprocessed_reviews()
 
-        self.failed_requests = {}
         self.review_ids = self.db.get_review_ids()
         self.rscrape_ids = self.db.get_rscrape_ids()
         self.user_ids = self.db.get_user_ids()
@@ -117,7 +118,6 @@ class ReviewSpider(scrapy.Spider):
 
     def start_requests(self):
         # first go over partially processed products
-        # TODO BUG IN HERE?
         for url in self.partially_processed_product_urls:
             # test if URL is in proper format
             regex_homecontent = re.match(r"^.*app/(\d+)/homecontent/.*$", url)
@@ -127,7 +127,6 @@ class ReviewSpider(scrapy.Spider):
                 yield self.form_request_from_last_url(url)
             elif regex_review:
                 self.steam_id = re.findall(r"^.*app/(\d+)/reviews/.*$", url)[0]
-        # TODO FIX THIS?
         if self.steam_id:
             url = (
                 f'http://steamcommunity.com/app/{self.steam_id}/reviews/'
@@ -157,13 +156,8 @@ class ReviewSpider(scrapy.Spider):
 
         # Load all reviews on current page.
         reviews = response.css('div .apphub_Card')
-        if (product_id, page) in self.failed_requests:
-            self.failed_requests[(product_id, page)]['has_failed'] = False
         for i, review in enumerate(reviews):
-            has_failed, load_rev = load_review(review, product_id, page, i, response)
-            if (product_id, page) in self.failed_requests:
-                # TODO HANDLE HAS FAILED!
-                self.failed_requests[(product_id, page)]['has_failed'] = self.failed_requests[(product_id, page)]['has_failed'] or has_failed
+            load_rev = load_review(review, product_id, page, i, response)
             yield load_rev
 
         self.db.commit()
@@ -201,10 +195,7 @@ class ReviewSpider(scrapy.Spider):
         formdata = dict(zip(names, values))
         meta = dict(prev_page=page, product_id=product_id)
 
-        self.failed_requests[(product_id, page+1)] = {}
-        self.failed_requests[(product_id, page+1)]['fails'] = 0
-        self.failed_requests[(product_id, page+1)]['has_failed'] = False
-        self.failed_requests[(product_id, page+1)]['form_request'] = FormRequest(
+        return FormRequest(
             url=action,
             method='GET',
             formdata=formdata,
@@ -213,4 +204,5 @@ class ReviewSpider(scrapy.Spider):
             dont_filter=True
         )
 
-        return self.failed_requests[product_id, page+1]['form_request']
+    def closed(self, reason):
+        self.db.close()

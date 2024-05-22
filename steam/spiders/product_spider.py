@@ -53,26 +53,22 @@ def load_product(response):
         pass
 
     description_about = response.css('#game_area_description').extract_first()
-    try:
+
+    def clean_html(description):
         text = ''
+        try:
+            line = re.sub('<[^<]+?>', '', description)  # Remove tags.
+            line = re.sub('[\r\t\n]+', '\n', line).strip()
+            text += line.strip() + '\n'
+            loader.add_value('description_about', text)
+        except:
+            pass
+        return text
 
-        line = re.sub('<[^<]+?>', '', description_about)  # Remove tags.
-        line = re.sub('[\r\t\n]+', '\n', line).strip()
-        text += line.strip() + '\n'
-        loader.add_value('description_about', text)
-    except:  # noqa E722
-        pass
-
+    loader.add_value('description_about', clean_html(description_about))
+    loader.add_value('description_about', clean_html(description_about))
     description_reviews = response.css('#game_area_reviews').extract_first()
-    try:
-        text = ''
-
-        line = re.sub('<[^<]+?>', '', description_reviews)  # Remove tags.
-        line = re.sub('[\r\t\n]+', '\n', line).strip()
-        text += line.strip() + '\n'
-        loader.add_value('description_reviews', text)
-    except:  # noqa E722
-        pass
+    loader.add_value('description_reviews', clean_html(description_reviews))
 
     loader.add_css('app_name', '.apphub_AppName ::text')
     loader.add_css('specs', 'a.game_area_details_specs_ctn ::text')
@@ -126,7 +122,6 @@ class ProductSpider(CrawlSpider):
         self.steam_id = steam_id
         self.processed_products = self.db.get_product_ids()
 
-
     def start_requests(self):
         if self.steam_id:
             yield Request(f'http://store.steampowered.com/app/{self.steam_id}/',
@@ -161,13 +156,5 @@ class ProductSpider(CrawlSpider):
                 continue
             yield link
 
-    def _build_request(self, rule_index, link):
-        if '815760' in link.url:
-            print('here!')
-        return Request(
-            url=link.url,
-            callback=self._callback,
-            cookies={"wants_mature_content": "1", "lastagecheckage": "1-0-1985", "birthtime": '470703601'},
-            errback=self._errback,
-            meta=dict(rule=rule_index, link_text=link.text),
-        )
+    def closed(self, reason):
+        self.db.close()
