@@ -26,3 +26,11 @@ class SteamDupeFilter(RFPDupeFilter):
     def request_fingerprint(self, request):
         request = strip_snr(request)
         return super().request_fingerprint(request)
+        
+
+class AddAgeCheckCookieMiddleware(object):
+    @staticmethod
+    def process_request(request, spider):
+        if spider.name == 'products' and not request.cookies:
+            request.cookies = {"wants_mature_content": "1", "lastagecheckage": "1-0-1985", "birthtime": '470703601'}
+

@@ -9,6 +9,10 @@ USER_AGENT = 'Steam Scraper'
 
 ROBOTSTXT_OBEY = True
 
+DOWNLOADER_MIDDLEWARES = {
+    "steam.middlewares.AddAgeCheckCookieMiddleware": 652,
+}
+
 AUTOTHROTTLE_ENABLED = True
 
 DUPEFILTER_CLASS = 'steam.middlewares.SteamDupeFilter'

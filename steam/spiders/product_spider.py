@@ -122,38 +122,5 @@ class ProductSpider(CrawlSpider):
             yield from super().start_requests()
 
     def parse_product(self, response):
-        # Circumvent age selection form.
-        if '/agecheck/app' in response.url:
-            logger.debug(f'Form-type age check triggered for {response.url}.')
+        yield load_product(response)
 
-            form = response.css('#agegate_box form')
-
-            action = form.xpath('@action').extract_first()
-            name = form.xpath('input/@name').extract_first()
-            value = form.xpath('input/@value').extract_first()
-
-            formdata = {
-                name: value,
-                'ageDay': '1',
-                'ageMonth': '1',
-                'ageYear': '1955'
-            }
-
-            yield FormRequest(
-                url=action,
-                method='POST',
-                formdata=formdata,
-                callback=self.parse_product
-            )
-
-        else:
-            yield load_product(response)
-
-    def _build_request(self, rule_index, link):
-        return Request(
-            url=link.url,
-            callback=self._callback,
-            cookies={"wants_mature_content": "1", "lastagecheckage": "1-0-1985", "birthtime": '470703601'},
-            errback=self._errback,
-            meta=dict(rule=rule_index, link_text=link.text),
-        )
