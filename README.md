@@ -47,9 +47,9 @@ A neat feature of this spider is that it automatically navigates through Steam's
 You can initiate the multi-hour crawl with
 ```bash
 mkdir output
-scrapy crawl products --logfile=output/products_all.log --loglevel=INFO -s JOBDIR=output/products_all_job -s HTTPCACHE_ENABLED=False -a sqlite_path=output/db.psql
+scrapy crawl products --logfile=output/products_all.log --loglevel=INFO -s JOBDIR=output/products_all_job -s HTTPCACHE_ENABLED=False -a sqlite_path=output/db.sqlite3
 ```
-When it completes you should have metadata for all games (products) on Steam stored in db.psql. 
+When it completes you should have metadata for all games (products) on Steam stored in db.sqlite3. 
 
 ## Extracting the Reviews
 
@@ -57,7 +57,7 @@ The purpose of `ReviewSpider` is to scrape all user-submitted reviews of a parti
 By default, it scrapes reviews of products, where column `reviews_scraped` is empty (`NULL`) and `n_reviews` is larger than `10`.
 
 ```bash
-scrapy crawl reviews --logfile=output/reviews_all.log --loglevel=INFO -s JOBDIR=output/reviews -s HTTPCACHE_ENABLED=False -a sqlite_path=output/db.psql
+scrapy crawl reviews --logfile=output/reviews_all.log --loglevel=INFO -s JOBDIR=output/reviews -s HTTPCACHE_ENABLED=False -a sqlite_path=output/db.sqlite3
 ```
 
 If you want to scrape all reviews, the whole job takes a few days with Steam's generous rate limits.
@@ -66,12 +66,12 @@ If you want to scrape all reviews, the whole job takes a few days with Steam's g
 The repository also includes a script that gives you an option to add news of all projects to the database. This is done by accessing Steam API and not scraping.
 
 ```bash
-python -m scripts.get_news_api --sqlite_path output/db.psql
+python -m scripts.get_news_api --sqlite_path output/db.sqlite3
 ```
 
 ## Minimizing database
 If you manage to get complete database, but would like to get a sample database from it, you may use `minimize_dataset.py` script.
 
 ```bash
-python -m scripts.minimize_dataset --sqlite_path output/db.psql --minimized_sqlite_path output/db_mini.psql --size 1000
+python -m scripts.minimize_dataset --sqlite_path output/db.sqlite3 --minimized_sqlite_path output/db_mini.psql --size 1000
 ```
